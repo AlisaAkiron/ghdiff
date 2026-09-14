@@ -43,6 +43,31 @@ describe('parseArgs', () => {
     });
   });
 
+  it('reads --commit as the last commit, or the one named beside it', () => {
+    // HEAD is what the command resolves to a sha at launch; the parser only
+    // knows what was typed. A flag and not a value, so the revision may come
+    // on either side of it and `--commit --no-open` swallows nothing.
+    assert.deepEqual(run('--commit')?.range, { mode: 'commit', rev: 'HEAD' });
+    assert.deepEqual(run('--commit', 'abc123')?.range, {
+      mode: 'commit',
+      rev: 'abc123',
+    });
+    assert.deepEqual(run('HEAD~2', '--commit')?.range, {
+      mode: 'commit',
+      rev: 'HEAD~2',
+    });
+    assert.deepEqual(run('--commit', '--no-open'), {
+      range: { mode: 'commit', rev: 'HEAD' },
+      port: undefined,
+      open: false,
+    });
+  });
+
+  it('refuses a range and the index beside --commit', () => {
+    assert.match(refuse('--commit', 'main..feature'), /single revision/);
+    assert.match(refuse('--commit', '--staged'), /Pick one/);
+  });
+
   it('reads both spellings of a range as the merge-base one', () => {
     const expected = { mode: 'range', base: 'main', head: 'feature' };
     assert.deepEqual(run('main..feature')?.range, expected);
@@ -185,6 +210,7 @@ describe('the declaration', () => {
       'revision',
       'staged',
       'cached',
+      'commit',
       'port',
       'open',
       'help',
@@ -195,7 +221,13 @@ describe('the declaration', () => {
   it('renders the options from that declaration, and the notes under them', async () => {
     const help = await helpText();
     // citty's half: every option, with the port's own default in its sentence.
-    for (const flag of ['--staged', '--cached', '--port', '--no-open']) {
+    for (const flag of [
+      '--staged',
+      '--cached',
+      '--commit',
+      '--port',
+      '--no-open',
+    ]) {
       assert.ok(help.includes(flag), `${flag} is missing from --help`);
     }
     // The half citty cannot know. `ghdiff main` meaning `main...HEAD` is this

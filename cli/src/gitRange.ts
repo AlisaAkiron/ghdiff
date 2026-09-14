@@ -37,6 +37,23 @@ export function diffArgs(range: LocalDiffRange): string[] {
       return ['diff', ...DIFF_FLAGS, `${range.base}...HEAD`];
     case 'range':
       return ['diff', ...DIFF_FLAGS, `${range.base}...${range.head}`];
+    // `show` and not `diff`, because a commit has no second endpoint to name:
+    // `rev~1` picks a merge's first parent without a word and does not exist
+    // for a root commit, where `show` diffs against the empty tree. Its header
+    // is switched off, so what streams is a patch and nothing before it. A
+    // merge gets its diff against the first parent, which is what the commit
+    // did to the branch it landed on; `show` would otherwise print a combined
+    // `@@@` diff the parser cannot read. `-m` is what the flag implied before
+    // git 2.31, and costs nothing after.
+    case 'commit':
+      return [
+        'show',
+        '--format=',
+        '--first-parent',
+        '-m',
+        ...DIFF_FLAGS,
+        range.rev,
+      ];
   }
 }
 
@@ -123,6 +140,8 @@ export function newSideSource(range: LocalDiffRange): NewSideSource {
       return { from: 'object', rev: 'HEAD' };
     case 'range':
       return { from: 'object', rev: range.head };
+    case 'commit':
+      return { from: 'object', rev: range.rev };
   }
 }
 
@@ -149,5 +168,7 @@ export function revisionsToVerify(range: LocalDiffRange): string[] {
       return [range.base, 'HEAD'];
     case 'range':
       return [range.base, range.head];
+    case 'commit':
+      return [range.rev];
   }
 }

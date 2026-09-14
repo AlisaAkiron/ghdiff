@@ -26,6 +26,8 @@ npx ghdiff              # uncommitted work, in a browser
 ghdiff --staged         # what is about to be committed
 ghdiff main             # this branch against its base
 ghdiff main..feature    # any two revisions
+ghdiff --commit         # the last commit
+ghdiff --commit abc123  # one commit
 ```
 
 It reads the repository you run it in and nothing else, never writes to it, and

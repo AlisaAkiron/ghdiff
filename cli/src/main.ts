@@ -10,7 +10,12 @@ import {
 } from '../../src/lib/reviewTarget.ts';
 import { DEFAULT_PORT, helpText, parseArgs, VERSION } from './args.ts';
 import { TOKEN_PARAM } from './guards.ts';
-import { listUntracked, resolveRepositoryRoot, verifyRange } from './repo.ts';
+import {
+  listUntracked,
+  pinCommit,
+  resolveRepositoryRoot,
+  verifyRange,
+} from './repo.ts';
 import { startLocalServer } from './server.ts';
 
 // `ghdiff` — the ghdiff review surface, over a diff that is on this machine.
@@ -35,9 +40,10 @@ async function main(argv: readonly string[]): Promise<number> {
     return 2;
   }
 
-  const { range, open, port } = parsed.run;
+  const { open, port } = parsed.run;
   const root = await resolveRepositoryRoot(process.cwd());
-  await verifyRange(root, range);
+  await verifyRange(root, parsed.run.range);
+  const range = await pinCommit(root, parsed.run.range);
 
   const target: LocalDiffTarget = { kind: 'local-diff', root, range };
   // 256 bits from the platform's own CSPRNG, minted for this run and kept

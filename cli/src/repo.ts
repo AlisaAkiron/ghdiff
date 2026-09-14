@@ -61,20 +61,46 @@ export async function verifyRange(
   range: LocalDiffRange
 ): Promise<void> {
   for (const revision of revisionsToVerify(range)) {
-    const result = await git(
-      ['rev-parse', '--verify', '--quiet', `${revision}^{commit}`],
-      root
-    );
-    if (result.ok) continue;
-    if (revision === 'HEAD') {
-      throw new LaunchFailure(
-        'This repository has no commits yet, so there is nothing to diff against. Make one commit and run ghdiff again.'
-      );
-    }
+    await resolveCommit(root, revision);
+  }
+}
+
+/**
+ * The commit a `--commit` range names, pinned to its sha.
+ *
+ * `HEAD` and a branch name are pointers, and the developer will move them: a
+ * commit made while the tab is open would otherwise change what the address
+ * means, and a browser filing comments under `commit HEAD` would hand
+ * yesterday's notes to today's commit. The sha is what `describeReviewTarget`
+ * prints and what `reviewTargetKey` holds, so the range in the target is the
+ * commit and not the name.
+ */
+export async function pinCommit(
+  root: string,
+  range: LocalDiffRange
+): Promise<LocalDiffRange> {
+  if (range.mode !== 'commit') return range;
+  return { mode: 'commit', rev: await resolveCommit(root, range.rev) };
+}
+
+/** The full sha `revision` names, or the `LaunchFailure` that says it names nothing. */
+async function resolveCommit(root: string, revision: string): Promise<string> {
+  const result = await git(
+    ['rev-parse', '--verify', '--quiet', `${revision}^{commit}`],
+    root
+  );
+  if (result.ok) {
+    const sha = result.stdout.trim();
+    if (sha.length > 0) return sha;
+  }
+  if (revision === 'HEAD') {
     throw new LaunchFailure(
-      `git cannot resolve "${revision}". Check the spelling, or fetch the branch if it is only on the remote.`
+      'This repository has no commits yet, so there is nothing to diff against. Make one commit and run ghdiff again.'
     );
   }
+  throw new LaunchFailure(
+    `git cannot resolve "${revision}". Check the spelling, or fetch the branch if it is only on the remote.`
+  );
 }
 
 /**

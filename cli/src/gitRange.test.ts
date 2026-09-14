@@ -22,9 +22,24 @@ describe('diffArgs', () => {
     // `rename-changed` file and only rename detection produces one.
     for (const range of ranges()) {
       const args = diffArgs(range);
-      assert.equal(args[0], 'diff');
+      assert.ok(args[0] === 'diff' || args[0] === 'show', args[0]);
       for (const flag of FLAGS) assert.ok(args.includes(flag), flag);
     }
+  });
+
+  it('shows one commit against its first parent, header off', () => {
+    // `show` and not `diff rev~1 rev`: `~1` does not exist for a root commit
+    // and picks a merge's first parent silently. `--first-parent` is what
+    // keeps a merge from printing a combined `@@@` diff the parser cannot
+    // read, and `--format=` is what keeps the commit message out of the patch.
+    assert.deepEqual(diffArgs({ mode: 'commit', rev: 'abc123' }), [
+      'show',
+      '--format=',
+      '--first-parent',
+      '-m',
+      ...FLAGS,
+      'abc123',
+    ]);
   });
 
   it('names what each range actually diffs', () => {
@@ -70,6 +85,7 @@ describe('rangeShowsUntracked', () => {
       rangeShowsUntracked({ mode: 'range', base: 'main', head: 'feature' }),
       false
     );
+    assert.equal(rangeShowsUntracked({ mode: 'commit', rev: 'abc123' }), false);
   });
 });
 
@@ -137,6 +153,10 @@ describe('newSideSource', () => {
       newSideSource({ mode: 'range', base: 'main', head: 'feature' }),
       { from: 'object', rev: 'feature' }
     );
+    assert.deepEqual(newSideSource({ mode: 'commit', rev: 'abc123' }), {
+      from: 'object',
+      rev: 'abc123',
+    });
   });
 
   it('reads the index for staged, which is what --cached diffed', () => {
@@ -160,6 +180,9 @@ describe('revisionsToVerify', () => {
       revisionsToVerify({ mode: 'range', base: 'main', head: 'feature' }),
       ['main', 'feature']
     );
+    assert.deepEqual(revisionsToVerify({ mode: 'commit', rev: 'abc123' }), [
+      'abc123',
+    ]);
   });
 });
 
@@ -169,5 +192,6 @@ function ranges(): LocalDiffRange[] {
     { mode: 'staged' },
     { mode: 'branch', base: 'main' },
     { mode: 'range', base: 'main', head: 'feature' },
+    { mode: 'commit', rev: 'abc123' },
   ];
 }

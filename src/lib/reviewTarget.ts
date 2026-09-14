@@ -39,7 +39,14 @@ export type LocalDiffRange =
   | { mode: 'worktree' }
   | { mode: 'staged' }
   | { mode: 'branch'; base: string }
-  | { mode: 'range'; base: string; head: string };
+  | { mode: 'range'; base: string; head: string }
+  /**
+   * One commit's own changes. `rev` is the full sha by the time a target is
+   * built: `HEAD` is what the developer typed, and it names a different commit
+   * the moment they make another, so the command resolves it at launch and
+   * the key below holds the commit and not the pointer.
+   */
+  | { mode: 'commit'; rev: string };
 
 export interface LocalDiffTarget {
   kind: 'local-diff';
@@ -96,7 +103,20 @@ function describeLocalRange(range: LocalDiffRange): string {
       return `${range.base}...HEAD`;
     case 'range':
       return `${range.base}...${range.head}`;
+    case 'commit':
+      return `commit ${range.rev}`;
   }
+}
+
+/**
+ * The same, for a header: a sha is cut to the seven characters a developer
+ * reads it by, and a name that is not a sha is left as it was.
+ */
+function labelLocalRange(range: LocalDiffRange): string {
+  if (range.mode === 'commit' && SHA_PATTERN.test(range.rev)) {
+    return `commit ${range.rev.slice(0, 7)}`;
+  }
+  return describeLocalRange(range);
 }
 
 /**
@@ -141,7 +161,7 @@ export function describeReviewTarget(target: ReviewTarget): string {
     case 'github-compare':
       return `${target.owner}/${target.repo} ${target.base}...${target.head}`;
     case 'local-diff':
-      return `${repoNameFromRoot(target.root)} · ${describeLocalRange(
+      return `${repoNameFromRoot(target.root)} · ${labelLocalRange(
         target.range
       )}`;
   }
@@ -308,7 +328,11 @@ function localRangeFromQuery(
   const mode = params.get('mode');
   const base = params.get('base');
   const head = params.get('head');
+  const rev = params.get('rev');
   if (mode === 'worktree' || mode === 'staged') return { mode };
+  if (mode === 'commit') {
+    return rev == null || rev.length === 0 ? undefined : { mode, rev };
+  }
   if (mode === 'branch') {
     return base == null || base.length === 0 ? undefined : { mode, base };
   }

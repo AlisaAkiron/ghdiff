@@ -82,6 +82,11 @@ export const COMMAND_ARGS = {
     type: 'boolean',
     description: 'The same thing, spelled git’s own way.',
   },
+  commit: {
+    type: 'boolean',
+    description:
+      'One commit’s own changes: the revision named, or the last commit.',
+  },
   port: {
     type: 'string',
     valueHint: 'n',
@@ -217,6 +222,13 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   }
   const revision = args._[0];
 
+  if (staged && args.commit === true) {
+    return {
+      kind: 'error',
+      message:
+        '--staged and --commit each name a diff of their own. Pick one of the two.',
+    };
+  }
   if (staged && revision != null) {
     return {
       kind: 'error',
@@ -226,6 +238,25 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   }
   if (staged)
     return { kind: 'run', run: { range: { mode: 'staged' }, port, open } };
+
+  // A flag and not a value, so `ghdiff --commit abc123` and `ghdiff abc123
+  // --commit` read the same and `ghdiff --commit --no-open` cannot swallow the
+  // option after it. Bare, it is the last commit: HEAD is the one every
+  // developer means and the one name nobody should have to type.
+  if (args.commit === true) {
+    const rev = revision ?? 'HEAD';
+    if (parseCompareRange(rev) != null) {
+      return {
+        kind: 'error',
+        message:
+          '--commit shows one commit, so it takes a single revision and not a range.',
+      };
+    }
+    if (!isUsableRevision(rev)) {
+      return { kind: 'error', message: badRevision(rev) };
+    }
+    return { kind: 'run', run: { range: { mode: 'commit', rev }, port, open } };
+  }
   if (revision == null) {
     return { kind: 'run', run: { range: { mode: 'worktree' }, port, open } };
   }
@@ -270,6 +301,8 @@ const NOTES = `EXAMPLES
   ghdiff --staged         what is about to land    git diff --cached
   ghdiff main             this branch on its base  git diff main...HEAD
   ghdiff main..feature    any two revisions        git diff main...feature
+  ghdiff --commit         the last commit          git show HEAD
+  ghdiff --commit abc123  one commit               git show abc123
 
 Files you have not added yet are in the first of those, at the end of the diff.
 The display menu has a switch that takes them back off.

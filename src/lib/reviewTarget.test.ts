@@ -251,6 +251,7 @@ describe('supportsGitHubComments', () => {
 });
 
 describe('a local diff target', () => {
+  const SHA = '8c20a53d3b1c0a2e9f4b6d7c8e1f2a3b4c5d6e7f';
   const worktree: LocalDiffTarget = {
     kind: 'local-diff',
     root: '/home/dev/projects/ghdiff',
@@ -296,6 +297,15 @@ describe('a local diff target', () => {
       }),
       'local:/home/dev/projects/ghdiff:main...topic'
     );
+    // The whole sha: the command pinned HEAD to one at launch so that the next
+    // commit cannot inherit this one's notes.
+    assert.equal(
+      reviewTargetKey({
+        ...worktree,
+        range: { mode: 'commit', rev: SHA },
+      }),
+      `local:/home/dev/projects/ghdiff:commit ${SHA}`
+    );
   });
 
   it('names the repository by its directory', () => {
@@ -307,6 +317,13 @@ describe('a local diff target', () => {
       }),
       'ghdiff \u00b7 main...topic'
     );
+    assert.equal(
+      describeReviewTarget({
+        ...worktree,
+        range: { mode: 'commit', rev: SHA },
+      }),
+      'ghdiff \u00b7 commit 8c20a53'
+    );
   });
 
   it('survives the trip through the query', () => {
@@ -315,6 +332,7 @@ describe('a local diff target', () => {
       { mode: 'staged' },
       { mode: 'branch', base: 'main' },
       { mode: 'range', base: 'main', head: 'topic' },
+      { mode: 'commit', rev: SHA },
     ] as const) {
       const target: LocalDiffTarget = { ...worktree, range };
       assert.deepEqual(
@@ -351,6 +369,12 @@ describe('a local diff target', () => {
     assert.equal(
       reviewTargetFromQuery(
         new URLSearchParams({ kind: 'local-diff', root: '/r', mode: 'tree' })
+      ),
+      undefined
+    );
+    assert.equal(
+      reviewTargetFromQuery(
+        new URLSearchParams({ kind: 'local-diff', root: '/r', mode: 'commit' })
       ),
       undefined
     );

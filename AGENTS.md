@@ -2179,6 +2179,23 @@ four statuses a patch can describe and never this one, so picking **Added**
 would otherwise take the untracked files away with nothing left to bring them
 back. One switch owns them.
 
+**A commit is the fifth range, and it is `git show` rather than `git diff`.** A
+bare revision already means a branch on its base — `ghdiff main` is
+`main...HEAD` — so one commit's own changes are asked for with `--commit`, a
+boolean flag beside the optional revision rather than a value, so
+`--commit abc123` and `abc123 --commit` read the same and `--commit --no-open`
+swallows nothing. Bare, it is HEAD. `show --format= --first-parent -m` is what
+`diffArgs` hands git: a commit has no second endpoint to name, `rev~1` does not
+exist for a root commit and picks a merge's first parent silently, and `show` on
+a merge would otherwise print a combined `@@@` diff the parser cannot read.
+Measured against a real merge: nine files from `show`, nine from `diff m^1 m`.
+
+`pinCommit` in `cli/src/repo.ts` resolves the name to its full sha before the
+target is built. HEAD is a pointer the developer is about to move, and the key
+`reviewTargetKey` holds is what the browser files comments and viewed marks
+under — `commit HEAD` would hand this commit's notes to the next one. The header
+prints the short sha for the same reason the label of a GitHub commit does.
+
 **Which file the new side is depends on the range, and `staged` is the one that
 catches people.** `git diff --cached` diffs the index against HEAD, so the new
 side is the **index** — `git show :0:<path>` — and reading `HEAD:<path>` there

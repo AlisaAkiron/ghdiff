@@ -19,6 +19,8 @@ npx ghdiff              # or: npm install -g ghdiff
 | `ghdiff --staged`      | what is about to be committed | `git diff --cached`       |
 | `ghdiff main`          | the branch against its base   | `git diff main...HEAD`    |
 | `ghdiff main..feature` | any two revisions             | `git diff main...feature` |
+| `ghdiff --commit`      | the last commit               | `git show HEAD`           |
+| `ghdiff --commit abc1` | one commit                    | `git show abc1`           |
 
 | Flag         | Effect                                 |
 | ------------ | -------------------------------------- |
