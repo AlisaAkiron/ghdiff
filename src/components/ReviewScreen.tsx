@@ -133,6 +133,20 @@ export function ReviewScreen({ target }: { target: ReviewTarget }) {
     owner: pullTarget?.owner,
     repo: pullTarget?.repo,
   });
+  // Details can still belong to the previous PR while navigation loads the next.
+  const pullTitle =
+    pullTarget != null &&
+    pull.data?.owner === pullTarget.owner &&
+    pull.data.repo === pullTarget.repo &&
+    pull.data.number === pullTarget.number
+      ? pull.data.title
+      : undefined;
+  useEffect(() => {
+    document.title = pullTitle ? `${pullTitle} · ghdiff` : 'ghdiff';
+    return () => {
+      document.title = 'ghdiff';
+    };
+  }, [pullTitle]);
   const review = useSubmitReview({
     number: pullTarget?.number,
     owner: pullTarget?.owner,
