@@ -312,7 +312,7 @@ function RailContent({
       <div
         ref={scrollRef}
         className={cn(
-          'min-h-0 flex-1',
+          'cv-scrollbar min-h-0 flex-1',
           ghost
             ? 'overflow-hidden'
             : 'overflow-x-hidden overflow-y-auto overscroll-contain'
