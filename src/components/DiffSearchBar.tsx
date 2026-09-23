@@ -14,7 +14,7 @@ import { cn } from '@/lib/cn';
 // itself again the way it does for any resize.
 //
 // It is the browser's find bar, in its parts: the field, the count, the two
-// arrows, and a close. Enter and Shift+Enter in the field are the arrows, and
+// arrows, and a close. Enter and Shift+Enter anywhere in the bar are the arrows, and
 // Escape is the close, which are the keys the browser's own bar answers to.
 
 /** The count, the way the browser's bar prints it. Empty until there is a query. */
@@ -34,6 +34,24 @@ export function DiffSearchBar({ search }: { search: DiffSearchState }) {
     <div
       role="search"
       aria-label="Find in diff"
+      // Capture before a focused button can turn Enter into a click.
+      onKeyDownCapture={(event) => {
+        // An IME sends Enter to commit the composed text and Escape to drop
+        // it, and both arrive here with `isComposing` set. Neither is the
+        // bar's to answer, or a Chinese query steps the old search instead
+        // of landing.
+        if (event.nativeEvent.isComposing) return;
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.shiftKey) search.previous();
+          else search.next();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          search.close();
+        }
+      }}
       className="border-line bg-surface flex h-9 shrink-0 items-center gap-1 border-b px-2"
     >
       <SearchField
@@ -43,21 +61,6 @@ export function DiffSearchBar({ search }: { search: DiffSearchState }) {
         value={query}
         wrapperClassName="max-phone:flex-1 w-72 max-w-full min-w-0"
         onChange={(event) => search.setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          // An IME sends Enter to commit the composed text and Escape to drop
-          // it, and both arrive here with `isComposing` set. Neither is the
-          // bar's to answer, or a Chinese query steps the old search instead
-          // of landing.
-          if (event.nativeEvent.isComposing) return;
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            if (event.shiftKey) search.previous();
-            else search.next();
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            search.close();
-          }
-        }}
       />
       {/* Read out as it changes, so a screen reader hears the count land and
           the arrows move it without leaving the field. */}
