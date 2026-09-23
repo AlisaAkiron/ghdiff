@@ -12,14 +12,17 @@ import {
   IconSymbolDiffstat,
   IconX,
 } from '@pierre/icons';
+import { GitMergeIcon } from '@primer/octicons-react/GitMergeIcon';
+import { GitPullRequestClosedIcon } from '@primer/octicons-react/GitPullRequestClosedIcon';
 import { Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { GitHubAccountControl } from '@/components/GitHubAccountControl';
 import { GitHubTextLink } from '@/components/GitHubLink';
 import { PullDetailsCard } from '@/components/PullDetailsCard';
 import { PullListButton } from '@/components/PullListButton';
+import { pullStateLabel } from '@/components/PullStateIcon';
 import { PullStateIcon } from '@/components/PullStateIcon';
 import { ReviewSubmitDialog } from '@/components/ReviewSubmitDialog';
 import { Button } from '@/components/ui/Button';
@@ -41,6 +44,7 @@ import type { PullDetailsState } from '@/hooks/usePullDetails';
 import type { SubmitReviewState } from '@/hooks/useSubmitReview';
 import { cn } from '@/lib/cn';
 import { CODE_FONTS, type CodeFontId } from '@/lib/codeFonts';
+import type { PullState } from '@/lib/pulls';
 import type { StatusTone } from '@/lib/pullStatus';
 import {
   describeSubmittedReview,
@@ -113,6 +117,7 @@ export function ReviewHeader({
 }: ReviewHeaderProps) {
   const split = controls.diffStyle === 'split';
   const [reviewing, setReviewing] = useState(false);
+  const reviewPopoverId = useId();
   // Only the phone layout scrolls this row, and the attributes it writes mean
   // nothing to any other width, so this costs a wider screen two no-op writes.
   const fadeRef = useEdgeFade<HTMLElement>();
@@ -169,9 +174,15 @@ export function ReviewHeader({
             range have no thread on GitHub for a verdict to land in. */}
         {review != null && (
           <>
-            <ReviewButton review={review} onOpen={() => setReviewing(true)} />
+            <ReviewButton
+              review={review}
+              state={pull?.data?.state}
+              popoverId={reviewPopoverId}
+            />
             <ReviewSubmitDialog
               open={reviewing}
+              id={reviewPopoverId}
+              onOpenChange={setReviewing}
               // Both halves are already in scope: the author arrives with the
               // details the title card reads, and the viewer with the session.
               // GitHub refuses an approval from whoever opened the pull
@@ -342,6 +353,23 @@ const VERDICT_COLOR: Record<StatusTone, string> = {
   neutral: 'text-status-neutral',
 };
 
+// A merge or a close outranks any verdict: it is what has happened to the pull
+// request since, and it is true for a viewer who never reviewed it too.
+const SETTLED: Partial<
+  Record<PullState, { icon: typeof GitMergeIcon; color: string; title: string }>
+> = {
+  merged: {
+    icon: GitMergeIcon,
+    color: 'text-pr-merged',
+    title: 'This pull request was merged. Review it anyway.',
+  },
+  closed: {
+    icon: GitPullRequestClosedIcon,
+    color: 'text-pr-closed',
+    title: 'This pull request was closed. Review it anyway.',
+  },
+};
+
 /**
  * The way in to a verdict, and the report of the one already on record.
  *
@@ -352,14 +380,33 @@ const VERDICT_COLOR: Record<StatusTone, string> = {
  * the newest one is the one that counts.
  */
 function ReviewButton({
-  onOpen,
+  popoverId,
   review,
+  state,
 }: {
-  onOpen(): void;
+  popoverId: string;
   review: SubmitReviewState;
+  state?: PullState;
 }) {
   const { latest } = review;
   const verdict = reviewVerdict(latest);
+
+  const settled = state == null ? undefined : SETTLED[state];
+  if (state != null && settled != null) {
+    return (
+      <Button
+        size="sm"
+        title={settled.title}
+        variant="chrome"
+        id={`${popoverId}-trigger`}
+        popoverTarget={popoverId}
+        aria-haspopup="dialog"
+      >
+        <settled.icon className={cn('shrink-0', settled.color)} size={14} />
+        {pullStateLabel(state)}
+      </Button>
+    );
+  }
 
   // Also the first paint of every review, before GitHub has answered. The
   // button is pressable throughout, because the verdict on record changes what
@@ -370,7 +417,9 @@ function ReviewButton({
         size="sm"
         title="Approve, request changes, or comment"
         variant="chrome"
-        onClick={onOpen}
+        id={`${popoverId}-trigger`}
+        popoverTarget={popoverId}
+        aria-haspopup="dialog"
       >
         <IconInReview size={14} />
         Review
@@ -384,7 +433,9 @@ function ReviewButton({
       size="sm"
       title={`${describeSubmittedReview(latest)} Review it again.`}
       variant="chrome"
-      onClick={onOpen}
+      id={`${popoverId}-trigger`}
+      popoverTarget={popoverId}
+      aria-haspopup="dialog"
     >
       <Icon className={cn('shrink-0', VERDICT_COLOR[verdict.tone])} size={14} />
       {verdict.label}

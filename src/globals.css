@@ -250,7 +250,44 @@ html[data-watching='no'] [data-app-rail] {
 
 .cv-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--app-line) transparent;
+  scrollbar-color: var(--app-ink-faint) transparent;
+}
+
+/* Prefer the inset thumb where supported; Firefox keeps the thin standard
+   scrollbar above. Leave forced-colors scrollbars to the browser. */
+@media (forced-colors: none) {
+  @supports selector(::-webkit-scrollbar) {
+    .cv-scrollbar {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    .cv-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .cv-scrollbar::-webkit-scrollbar-track,
+    .cv-scrollbar::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    .cv-scrollbar::-webkit-scrollbar-thumb {
+      min-height: 32px;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background: var(--app-ink-faint);
+      background-clip: padding-box;
+    }
+
+    .cv-scrollbar::-webkit-scrollbar-thumb:hover {
+      background-color: var(--app-ink-muted);
+    }
+
+    .cv-scrollbar::-webkit-scrollbar-thumb:active {
+      background-color: var(--app-ink);
+    }
+  }
 }
 
 /* The left bar mid-toggle: an inert, opaque copy of the layout being left,
