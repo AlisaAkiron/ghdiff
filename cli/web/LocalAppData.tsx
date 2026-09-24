@@ -45,6 +45,7 @@ const NO_WATCH_LIST: AppData['watched'] = {
   hydrated: true,
   add: () => false,
   remove: () => {},
+  move: () => {},
 };
 
 export function LocalAppData({ children }: { children: ReactNode }) {
