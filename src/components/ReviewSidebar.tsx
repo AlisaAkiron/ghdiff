@@ -14,7 +14,7 @@ import { CommentsList } from '@/components/CommentsList';
 import { FilterMenu } from '@/components/FilterMenu';
 import { ReviewFileTree, treeStatLaneInset } from '@/components/ReviewFileTree';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { SearchField } from '@/components/ui/SearchField';
 import {
   Segmented,
   SegmentedCount,
@@ -418,24 +418,17 @@ function PathSearchField({
   }, []);
 
   return (
-    <div className="relative">
-      <IconSearch
-        className="text-ink-faint pointer-events-none absolute top-1/2 left-2 -translate-y-1/2"
-        size={12}
-      />
-      <Input
-        ref={inputRef}
-        aria-label="Search files by path"
-        autoComplete="off"
-        className="h-7 pr-7 pl-7 text-xs"
-        placeholder="Path contains…"
-        spellCheck={false}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') onClose();
-        }}
-      />
+    <SearchField
+      ref={inputRef}
+      aria-label="Search files by path"
+      className="pr-7"
+      placeholder="Path contains…"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+    >
       {value.length > 0 && (
         <button
           aria-label="Clear the path search"
@@ -449,6 +442,6 @@ function PathSearchField({
           <IconX size={12} />
         </button>
       )}
-    </div>
+    </SearchField>
   );
 }
