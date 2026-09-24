@@ -161,12 +161,17 @@ export function ReviewScreen({
     pull.data.number === pullTarget.number
       ? pull.data.title
       : undefined;
+  // A local diff has no title to fetch, and its repository and range are what
+  // tell two runs' tabs apart.
+  const tabTitle =
+    pullTitle ??
+    (target.kind === 'local-diff' ? describeReviewTarget(target) : undefined);
   useEffect(() => {
-    document.title = pullTitle ? `${pullTitle} · ghdiff` : 'ghdiff';
+    document.title = tabTitle ? `${tabTitle} · ghdiff` : 'ghdiff';
     return () => {
       document.title = 'ghdiff';
     };
-  }, [pullTitle]);
+  }, [tabTitle]);
   const review = useSubmitReview({
     number: pullTarget?.number,
     owner: pullTarget?.owner,

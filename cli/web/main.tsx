@@ -12,6 +12,7 @@ import { createRoot } from 'react-dom/client';
 import { LocalAppData } from './LocalAppData';
 import { claimToken, installTokenHeader } from './localFetch';
 import { ReviewScreen } from '@/components/ReviewScreen';
+import { RouteError } from '@/components/RouteError';
 // The whole stylesheet, as a side effect, which is what a stylesheet is in a
 // bundled page. `__root.tsx` imports the same file `?url` instead, because a
 // server-rendered document needs a `<link>` to name.
@@ -134,6 +135,9 @@ const router = createRouter({
   // Nothing here is preloaded and nothing is scrolled by the router: the diff
   // is its own scroll region and `useDiffAnchor` owns the fragment.
   scrollRestoration: false,
+  // The port is fixed, so a tab left open across an upgrade asks the new
+  // server for chunks the old build named. The hosted recovery answers that.
+  defaultErrorComponent: RouteError,
 });
 
 const container = document.getElementById('root');
